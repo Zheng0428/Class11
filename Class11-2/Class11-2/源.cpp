@@ -4,37 +4,8 @@
 using namespace cv;
 using namespace std;
 
-int calcGaussianBackground(std::vector<cv::Mat> srcMats, cv::Mat& meanMat, cv::Mat& varMat)
-{
 
-	int rows = srcMats[0].rows;
-	int cols = srcMats[0].cols;
-
-
-	for (int h = 0; h < rows; h++)
-	{
-		for (int w = 0; w < cols; w++)
-		{
-
-			int sum = 0;
-			float var = 0;
-			//求均值
-			for (int i = 0; i < srcMats.size(); i++) {
-				sum += srcMats[i].at<uchar>(h, w);
-			}
-			meanMat.at<uchar>(h, w) = sum / srcMats.size();
-			//求方差
-			for (int i = 0; i < srcMats.size(); i++) {
-				var += pow((srcMats[i].at<uchar>(h, w) - meanMat.at<uchar>(h, w)), 2);
-			}
-			varMat.at<float>(h, w) = var / srcMats.size();
-		}
-	}
-
-	return 0;
-}
-
-int gaussianThreshold(cv::Mat srcMat, cv::Mat meanMat, cv::Mat varMat, float weight, cv::Mat& dstMat)
+int GSfangcha(cv::Mat srcMat, cv::Mat meanMat, cv::Mat varMat, float weight, cv::Mat& dstMat)
 {
 	int srcI;
 	int meanI;
@@ -64,6 +35,38 @@ int gaussianThreshold(cv::Mat srcMat, cv::Mat meanMat, cv::Mat varMat, float wei
 	return 0;
 }
 
+int calGaosiBG(std::vector<cv::Mat> srcMats, cv::Mat& meanMat, cv::Mat& varMat)
+{
+
+	int rows = srcMats[0].rows;
+	int cols = srcMats[0].cols;
+
+
+	for (int h = 0; h < rows; h++)
+	{
+		for (int w = 0; w < cols; w++)
+		{
+
+			int sum = 0;
+			float var = 0;
+		
+			for (int i = 0; i < srcMats.size(); i++) {
+				sum += srcMats[i].at<uchar>(h, w);
+			}
+			meanMat.at<uchar>(h, w) = sum / srcMats.size();
+		
+			for (int i = 0; i < srcMats.size(); i++) {
+				var += pow((srcMats[i].at<uchar>(h, w) - meanMat.at<uchar>(h, w)), 2);
+			}
+			varMat.at<float>(h, w) = var / srcMats.size();
+		}
+	}
+
+	return 0;
+}
+
+
+
 int main()
 {
 
@@ -79,9 +82,9 @@ int main()
 	std::vector<cv::Mat> srcMats;
 
 
-	//参数设置
-	int nBg = 200;		//用来建立背景模型的数量
-	float wVar = 1.25;		//方差权重
+	
+	int numBG = 200;		
+	float wVar = 1.25;		
 
 	int cnt = 0;
 	cv::Mat frame;
@@ -94,27 +97,28 @@ int main()
 		capVideo >> frame;
 		cvtColor(frame, frame, COLOR_BGR2GRAY);
 
-		//前面的nBg帧，计算背景
-		if (cnt < nBg) {
+		if (cnt < numBG) 
+		{
 
 			srcMats.push_back(frame);
 
-			if (cnt == 0) {
+			if (cnt == 0) 
+			{
 				std::cout << "reading frame " << std::endl;
 			}
 
 		}
-		else if (cnt == nBg) {
-			//计算模型
+		else if (cnt == numBG) 
+		{
 			meanMat.create(frame.size(), CV_8UC1);
 			varMat.create(frame.size(), CV_32FC1);
 			std::cout << "calculating background models" << std::endl;
-			calcGaussianBackground(srcMats, meanMat, varMat);
+			calGaosiBG(srcMats, meanMat, varMat);
 		}
 		else {
 			//背景差分
 			dstMat.create(frame.size(), CV_8UC1);
-			gaussianThreshold(frame, meanMat, varMat, wVar, dstMat);
+			GSfangcha(frame, meanMat, varMat, wVar, dstMat);
 			imshow("result", dstMat);
 			imshow("frame", frame);
 			waitKey(30);
